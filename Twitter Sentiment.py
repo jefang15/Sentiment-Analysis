@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
 import nltk
+from nltk.corpus import stopwords
 import re
 nltk.download('stopwords')
 stemmer = nltk.SnowballStemmer("english")
-from nltk.corpus import stopwords
 import string
 stopword = set(stopwords.words('english'))
 
@@ -35,24 +35,26 @@ def scrape_twitter(subject):
 
     # Scrape Tweets and append to blank list
     for i, tweet in enumerate(sntwitter.TwitterSearchScraper(subject).get_items()):
+        if i > 10000:
+            break
         tweet_list.append([tweet.user.username, tweet.date, tweet.likeCount, tweet.rawContent, tweet.url])
 
     # Create DataFrame of Tweets from list of Tweets
     tweet_df = pd.DataFrame(tweet_list, columns=['Username', 'Date', 'Like Count', 'Content', 'Link'])
     print(len(tweet_df), 'Tweets')
-    print(tabulate(tweet_df.head(10), headers='keys', tablefmt='psql', numalign='right'))
+    # print(tabulate(tweet_df.head(10), headers='keys', tablefmt='psql', numalign='right'))
     
     return tweet_df
 
 
 # Subject to search and scrape Twitter
-tweet_subject = 'Elon Musk since:2022-010-01 until:2022-011-01'  # Text subject and date range
-ama_voting = 'Favorite Female Country Artist #AMAs2022 since:2022-09-01 until:2022-011-01'
-pca_voting = '#TheCountryArtist at #PCAs since:2022-09-01 until:2022-011-01'
+tweet_subject = 'Elon Musk since:2022-010-27 until:2022-010-28'  # Text subject and date range
+ama_voting = 'FAVORITE FEMALE COUNTRY ARTIST at the #AMAs since:2022-10-01 until:2022-011-01'
+pca_voting = '#TheCountryArtist at #PCAs since:2022-10-01 until:2022-011-01'
 
 df_musk = scrape_twitter(tweet_subject)
-df_ama_voting = scrape_twitter(ama_voting)
-df_pca_voting = scrape_twitter(pca_voting)
+df_ama_voting = scrape_twitter(ama_voting)  # 5352
+df_pca_voting = scrape_twitter(pca_voting)  # 282
 
 
 """
@@ -62,9 +64,24 @@ Sentiment Analysis
 """
 
 
+# Word count
+text = (' '.join(i for i in df_ama_voting['Content'])).split()
+print(text)
+
+job_count = dict()
+for i in text:
+    job_count[i] = job_count.get(i, 0) + 1
+job_count.items()
+job_keywords_count = sorted(job_count.items(), key=lambda x: x[1], reverse=True)
+print(job_keywords_count)
+# ('Taylor', 4192), ('Swift', 4164)
+# ('Carrie', 1131), ('Underwood', 1114)
+
+
 def word_cloud(df):
     text = ' '.join(i for i in df['Content'])
     stopwords = set(STOPWORDS)
+    print(stopwords)
     wordcloud = WordCloud(stopwords=stopwords, background_color='white').generate(text)
     plt.figure(figsize=(15, 10))
     plt.imshow(wordcloud, interpolation='bilinear')
@@ -95,6 +112,8 @@ def sentiment_analysis(df):
 
     sentiment_score(x, y, z)
 
+
+df_ama_voting['Content'].value_counts()
 
 # Validate data and check for nulls
 df_musk.isna().sum()
